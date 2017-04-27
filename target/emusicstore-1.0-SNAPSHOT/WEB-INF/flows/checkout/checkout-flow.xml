@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flow xmlns="http://www.springframework.org/schema/webflow"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/webflow http://www.springframework.org/schema/webflow/spring-webflow-2.0.xsd">
+
+    <var name="order" class="com.emusicstore.model.CustomerOrder"/>
+
+    <action-state id="addCartToOrder">
+        <!--validates the cartId wheather it exist or not and result is stored in order.cart-->
+        <evaluate expression="cartDaoImpl.validate(requestParameters.cartId)" result="order.cart"/>
+
+        <!--if there is IOException then it will transfer to InvalidCartWarning.-->
+        <transition to="invalidCartWarning" on-exception="java.io.IOException"/>
+        <!--if it is normal,it is transfer to collectCustomerInfo-->
+        <transition to="collectCustomerInfo"/>
+    </action-state>
+
+
+    <view-state id="collectCustomerInfo" view="collectCustomerInfo.jsp" model="order">
+
+        <!-- here is one condition  -->
+        <!-- this is next button -->
+        <transition on="customerInfoCollected" to="collectShippingDetail"/>
+
+
+    </view-state>
+    <!-- another view state of customershippingDetail-->
+
+    <view-state id="collectShippingDetail" view="collectShippingDetail.jsp" model="order">
+
+        <!-- this is next button -->
+
+        <transition on="shippingDetailCollected" to="orderConfirmation"></transition>
+        <!-- this is back button -->
+        <transition on="backToCollectCustomerInfo" to="collectCustomerInfo"/>
+    </view-state>
+
+    <!-- order confirmation-->
+    <view-state id="orderConfirmation">
+        <transition on="orderConfirmed" to="processOrder"/>
+        <!-- back button to shipping detail -->
+        <transition on="backToCollectShippingDetail" to="collectShippingDetail"></transition>
+    </view-state>
+
+    <!-- process order -->
+    <action-state id="processOrder">
+        <!-- after we order conform then all old items must be cleared.-->
+        <evaluate expression="cartItemDaoImpl.removeAllCartItem(order.cart)"/>
+
+        <transition to="thanksCustomer" ></transition>
+    </action-state>
+
+
+    <view-state id="thanksCustomer" model="order">
+        <transition to="endState"></transition>
+    </view-state>
+
+    <end-state id="endState"/>
+
+    <view-state id="invalidCartWarning">
+        <transition to="endState"/>
+    </view-state>
+    <end-state id="cancelCheckout" view="checkoutCancelled.jsp"/>
+
+    <global-transitions>
+        <transition on="cancel" to="cancelCheckout"/>
+    </global-transitions>
+
+</flow>
